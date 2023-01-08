@@ -5,9 +5,9 @@ use jpeg_encoder::{Encoder, ColorType, EncodingError};
 
 #[derive(Clone)]
 pub struct Image {
-    pixels: Vec<u8>, // Assume pixel in CHW format
-    pub height: u16,
-    pub width: u16,
+    pixels: Vec<u8>,
+    pub height: usize,
+    pub width: usize,
     pub color_mode: ColorMode
 }
 
@@ -36,13 +36,22 @@ impl Display for Pixel {
 }
 
 impl Image {
+    pub fn new(width: usize, height: usize) -> Self {
+        Image {
+            height,
+            width,
+            pixels: std::iter::repeat(0).take(width * height * 3).collect::<Vec<_>>(),
+            color_mode: ColorMode::RGB
+        }
+    }
+
     pub fn load(path: &str) -> Self {
         let file = File::open(path).expect("failed to open file");
         let mut decoder = Decoder::new(BufReader::new(file));
         let pixels = decoder.decode().expect("failed to decode image");
         let metadata = decoder.info().unwrap();
-        let height = metadata.height;
-        let width = metadata.width;
+        let height = metadata.height as usize;
+        let width = metadata.width as usize;
 
         Image {
             pixels,
@@ -54,7 +63,7 @@ impl Image {
 
     pub fn save(&self, path: &str, quality: u8) -> Result<(), EncodingError> {
         let encoder = Encoder::new_file(path, quality).unwrap();
-        encoder.encode(&self.pixels, self.width, self.height, ColorType::Rgb)
+        encoder.encode(&self.pixels, self.width as u16, self.height as u16, ColorType::Rgb)
     }
 
     fn clamp(&self, x: usize, y: usize) -> (usize, usize) {
